@@ -12,6 +12,7 @@ pyo3 = "0.18"
 nucypher-core = { path = "../nucypher-core" }
 umbral-pre = { version = "0.9.1", features = ["bindings-python"] }
 derive_more = { version = "0.99", default-features = false, features = ["from", "as_ref"] }
+x25519-dalek = "2.0.0-rc.2"
 
 [build-dependencies]
 pyo3-build-config = "*"
