@@ -436,13 +436,18 @@ dependencies = [
  "chacha20poly1305",
  "generic-array",
  "hex",
- "rand_core",
+ "hkdf",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "rmp-serde",
  "serde",
  "serde_with",
+ "sha2",
  "sha3",
  "umbral-pre",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -454,7 +459,6 @@ dependencies = [
  "pyo3",
  "pyo3-build-config",
  "umbral-pre",
- "x25519-dalek",
 ]
 
 [[package]]
@@ -465,12 +469,10 @@ dependencies = [
  "derive_more",
  "js-sys",
  "nucypher-core",
- "rand_core",
  "umbral-pre",
  "wasm-bindgen",
  "wasm-bindgen-derive",
  "wasm-bindgen-test",
- "x25519-dalek",
 ]
 
 [[package]]

@@ -1,5 +1,4 @@
 use nucypher_core_wasm::*;
-use rand_core::OsRng;
 
 use umbral_pre::bindings_wasm::{
     generate_kfrags, reencrypt, Capsule, RecoverableSignature, SecretKey, Signer,
@@ -8,8 +7,6 @@ use umbral_pre::bindings_wasm::{
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_test::*;
-
-use x25519_dalek::{EphemeralSecret, PublicKey as DalekPublicKey};
 
 //
 // Test utilities
@@ -672,18 +669,30 @@ fn metadata_response() {
 //
 
 #[wasm_bindgen_test]
+fn request_public_key() {
+    let secret = RequestSecretKey::random();
+    let public_key = secret.public_key();
+
+    // mimic transmission public key over the wire
+    let serialized_public_key = public_key.to_bytes();
+    let deserialized_public_key =
+        RequestPublicKey::from_bytes(serialized_public_key.as_ref()).unwrap();
+
+    assert_eq!(public_key, deserialized_public_key);
+    assert_eq!(serialized_public_key, deserialized_public_key.to_bytes());
+}
+
+#[wasm_bindgen_test]
 fn threshold_decryption_request() {
     let ritual_id: u16 = 5;
-    let service_secret = EphemeralSecret::random_from_rng(OsRng);
-    let service_public_key = DalekPublicKey::from(&service_secret);
+    let service_secret = RequestSecretKey::random();
+    let service_public_key = service_secret.public_key();
 
-    let requester_secret = EphemeralSecret::random_from_rng(OsRng);
-    let requester_public_key = DalekPublicKey::from(&requester_secret);
+    let requester_secret = RequestSecretKey::random();
+    let requester_public_key = requester_secret.public_key();
 
-    let service_shared_secret =
-        SharedSecret::from(service_secret.diffie_hellman(&requester_public_key));
-    let requester_shared_secret =
-        SharedSecret::from(requester_secret.diffie_hellman(&service_public_key));
+    let service_shared_secret = service_secret.diffie_hellman(&requester_public_key);
+    let requester_shared_secret = requester_secret.diffie_hellman(&service_public_key);
 
     let conditions: JsValue = Some(Conditions::new("{'some': 'condition'}")).into();
     let context: JsValue = Some(Context::new("{'user': 'context'}")).into();
@@ -698,7 +707,7 @@ fn threshold_decryption_request() {
     .unwrap();
 
     // requester encrypts request to send to service
-    let requester_key = RequesterPublicKey::from(requester_public_key);
+    let requester_key = requester_secret.public_key();
     let encrypted_request = request.encrypt(&requester_shared_secret, &requester_key);
 
     // mimic encrypted request going over the wire
@@ -720,9 +729,9 @@ fn threshold_decryption_request() {
     assert_eq!(request, decrypted_request);
 
     // wrong key used
-    let random_secret_key = EphemeralSecret::random_from_rng(OsRng);
+    let random_secret_key = RequestSecretKey::random();
     let random_shared_secret =
-        SharedSecret::from(random_secret_key.diffie_hellman(&service_public_key));
+        RequestSharedSecret::from(random_secret_key.diffie_hellman(&service_public_key));
     assert!(encrypted_request_from_bytes
         .decrypt(&random_shared_secret)
         .is_err());
@@ -730,16 +739,14 @@ fn threshold_decryption_request() {
 
 #[wasm_bindgen_test]
 fn threshold_decryption_response() {
-    let service_secret = EphemeralSecret::random_from_rng(OsRng);
-    let service_public_key = DalekPublicKey::from(&service_secret);
+    let service_secret = RequestSecretKey::random();
+    let service_public_key = service_secret.public_key();
 
-    let requester_secret = EphemeralSecret::random_from_rng(OsRng);
-    let requester_public_key = DalekPublicKey::from(&requester_secret);
+    let requester_secret = RequestSecretKey::random();
+    let requester_public_key = requester_secret.public_key();
 
-    let service_shared_secret =
-        SharedSecret::from(service_secret.diffie_hellman(&requester_public_key));
-    let requester_shared_secret =
-        SharedSecret::from(requester_secret.diffie_hellman(&service_public_key));
+    let service_shared_secret = service_secret.diffie_hellman(&requester_public_key);
+    let requester_shared_secret = requester_secret.diffie_hellman(&service_public_key);
 
     let decryption_share = b"The Tyranny of Merit";
 
@@ -764,9 +771,8 @@ fn threshold_decryption_response() {
     );
 
     // wrong secret key used
-    let random_secret_key = EphemeralSecret::random_from_rng(OsRng);
-    let random_shared_secret =
-        SharedSecret::from(random_secret_key.diffie_hellman(&service_public_key));
+    let random_secret_key = RequestSecretKey::random();
+    let random_shared_secret = random_secret_key.diffie_hellman(&service_public_key);
     assert!(encrypted_response_from_bytes
         .decrypt(&random_shared_secret)
         .is_err());
