@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `RequestSharedSecret`, `RequestPublicKey`, `RequestSecretKey`, `RequestKeyFactory` as wrappers for underlying Curve 25519 key functionality. ([#54])
+- Added Rust `pre-commit` hooks for repos. 
 
 
 ### Changed
