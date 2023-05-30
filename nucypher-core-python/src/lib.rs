@@ -642,7 +642,7 @@ pub struct RequestSharedSecret {
 }
 
 #[pyclass(module = "nucypher_core")]
-#[derive(derive_more::From, derive_more::AsRef)]
+#[derive(Clone, PartialEq, Eq, derive_more::From, derive_more::AsRef)]
 pub struct RequestPublicKey {
     backend: nucypher_core::RequestPublicKey,
 }
@@ -656,6 +656,14 @@ impl RequestPublicKey {
 
     fn __bytes__(&self) -> PyObject {
         to_bytes(self)
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        richcmp(self, other, op)
+    }
+
+    fn __hash__(&self) -> PyResult<isize> {
+        hash("RequestPublicKey", self)
     }
 
     fn __str__(&self) -> PyResult<String> {
@@ -678,7 +686,6 @@ impl RequestSecretKey {
         })
     }
 
-    #[getter]
     pub fn public_key(&self) -> RequestPublicKey {
         RequestPublicKey {
             backend: self.backend.public_key(),
@@ -830,10 +837,11 @@ impl ThresholdDecryptionRequest {
         shared_secret: &RequestSharedSecret,
         requester_public_key: &RequestPublicKey,
     ) -> EncryptedThresholdDecryptionRequest {
+        let encrypted_request = self
+            .backend
+            .encrypt(shared_secret.as_ref(), requester_public_key.as_ref());
         EncryptedThresholdDecryptionRequest {
-            backend: self
-                .backend
-                .encrypt(shared_secret.as_ref(), requester_public_key.as_ref()),
+            backend: encrypted_request,
         }
     }
 
@@ -864,8 +872,9 @@ impl EncryptedThresholdDecryptionRequest {
         self.backend.ritual_id
     }
 
+    #[getter]
     pub fn requester_public_key(&self) -> RequestPublicKey {
-        RequestPublicKey::from(self.backend.requester_public_key)
+        self.backend.requester_public_key.into()
     }
 
     pub fn decrypt(
@@ -901,10 +910,15 @@ pub struct ThresholdDecryptionResponse {
 #[pymethods]
 impl ThresholdDecryptionResponse {
     #[new]
-    pub fn new(decryption_share: &[u8]) -> Self {
+    pub fn new(ritual_id: u16, decryption_share: &[u8]) -> Self {
         ThresholdDecryptionResponse {
-            backend: nucypher_core::ThresholdDecryptionResponse::new(decryption_share),
+            backend: nucypher_core::ThresholdDecryptionResponse::new(ritual_id, decryption_share),
         }
+    }
+
+    #[getter]
+    pub fn ritual_id(&self) -> u16 {
+        self.backend.ritual_id
     }
 
     #[getter]
@@ -943,6 +957,11 @@ pub struct EncryptedThresholdDecryptionResponse {
 
 #[pymethods]
 impl EncryptedThresholdDecryptionResponse {
+    #[getter]
+    pub fn ritual_id(&self) -> u16 {
+        self.backend.ritual_id
+    }
+
     pub fn decrypt(
         &self,
         shared_secret: &RequestSharedSecret,

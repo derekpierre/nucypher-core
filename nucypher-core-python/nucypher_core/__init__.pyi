@@ -450,10 +450,12 @@ class EncryptedThresholdDecryptionRequest:
 
 class ThresholdDecryptionResponse:
 
-    def __init__(self, decryption_share: bytes):
+    def __init__(self, ritual_id: int, decryption_share: bytes):
         ...
 
     decryption_share: bytes
+
+    ritual_id: int
 
     def encrypt(self, shared_secret: RequestSharedSecret) -> EncryptedThresholdDecryptionResponse:
         ...
@@ -467,6 +469,8 @@ class ThresholdDecryptionResponse:
 
 
 class EncryptedThresholdDecryptionResponse:
+
+    ritual_id: int
 
     def decrypt(
         self,
