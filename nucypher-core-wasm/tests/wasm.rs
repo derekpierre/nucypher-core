@@ -673,6 +673,8 @@ fn request_public_key() {
     let secret = RequestSecretKey::random();
     let public_key = secret.public_key();
 
+    assert_eq!(secret.public_key(), secret.public_key());
+
     // mimic transmission public key over the wire
     let serialized_public_key = public_key.to_bytes();
     let deserialized_public_key =
@@ -703,7 +705,7 @@ fn threshold_decryption_request() {
     .unwrap();
 
     // requester encrypts request to send to service
-    let requester_shared_secret = requester_secret.diffie_hellman(&service_public_key);
+    let requester_shared_secret = requester_secret.derive_shared_secret(&service_public_key);
     let requester_public_key = requester_secret.public_key();
     let encrypted_request = request.encrypt(&requester_shared_secret, &requester_public_key);
 
@@ -721,7 +723,7 @@ fn threshold_decryption_request() {
 
     // service decrypts request
     let service_shared_secret =
-        service_secret.diffie_hellman(&encrypted_request_from_bytes.requester_public_key());
+        service_secret.derive_shared_secret(&encrypted_request_from_bytes.requester_public_key());
     let decrypted_request = encrypted_request_from_bytes
         .decrypt(&service_shared_secret)
         .unwrap();
@@ -730,7 +732,7 @@ fn threshold_decryption_request() {
     // wrong key used
     let random_secret_key = RequestSecretKey::random();
     let random_shared_secret =
-        RequestSharedSecret::from(random_secret_key.diffie_hellman(&service_public_key));
+        RequestSharedSecret::from(random_secret_key.derive_shared_secret(&service_public_key));
     assert!(encrypted_request_from_bytes
         .decrypt(&random_shared_secret)
         .is_err());
@@ -750,7 +752,7 @@ fn threshold_decryption_response() {
     let response = ThresholdDecryptionResponse::new(ritual_id, decryption_share).unwrap();
 
     // service encrypts response to send back
-    let service_shared_secret = service_secret.diffie_hellman(&requester_public_key);
+    let service_shared_secret = service_secret.derive_shared_secret(&requester_public_key);
     let encrypted_response = response.encrypt(&service_shared_secret);
     assert_eq!(encrypted_response.ritual_id(), ritual_id);
 
@@ -761,7 +763,7 @@ fn threshold_decryption_response() {
 
     // requester decrypts response
     let service_public_key = service_secret.public_key();
-    let requester_shared_secret = requester_secret.diffie_hellman(&service_public_key);
+    let requester_shared_secret = requester_secret.derive_shared_secret(&service_public_key);
     let decrypted_response = encrypted_response_from_bytes
         .decrypt(&requester_shared_secret)
         .unwrap();
@@ -774,7 +776,7 @@ fn threshold_decryption_response() {
 
     // wrong secret key used
     let random_secret_key = RequestSecretKey::random();
-    let random_shared_secret = random_secret_key.diffie_hellman(&service_public_key);
+    let random_shared_secret = random_secret_key.derive_shared_secret(&service_public_key);
     assert!(encrypted_response_from_bytes
         .decrypt(&random_shared_secret)
         .is_err());
