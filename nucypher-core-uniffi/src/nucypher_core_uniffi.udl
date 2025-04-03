@@ -1,0 +1,43 @@
+namespace nucypher_core_uniffi {
+};
+
+[Error]
+enum NuCypherError {
+    "EncryptionError",
+    "DecryptionError",
+    "InvalidInput",
+    "InvalidThreshold",
+    "InvalidShare",
+    "InvalidSignature",
+    "InvalidMetadata"
+};
+
+interface SessionSharedSecret {
+};
+
+interface SessionStaticKey {
+    bytes to_bytes();
+};
+
+interface SessionStaticSecret {
+    [Name=random]
+    constructor();
+    SessionStaticKey public_key();
+    SessionSharedSecret derive_shared_secret([ByRef] SessionStaticKey their_public_key);
+};
+
+interface SessionSecretFactory {
+    u64 seed_size();
+    [Name=from_secure_randomness, Throws=NuCypherError]
+    constructor([ByRef] bytes seed);
+    SessionStaticSecret make_key([ByRef] bytes label);
+};
+
+interface DkgPublicKey {
+    [Throws=NuCypherError]
+    constructor([ByRef] bytes public_key_bytes);
+    [Throws=NuCypherError]
+    bytes to_bytes();
+    [Name=from_bytes, Throws=NuCypherError]
+    constructor([ByRef] bytes data);
+};

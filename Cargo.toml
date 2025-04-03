@@ -3,6 +3,7 @@ members = [
     "nucypher-core",
     "nucypher-core-python",
     "nucypher-core-wasm",
+    "nucypher-core-uniffi",
 ]
 
 # Prevents `local exceed maximum` error
